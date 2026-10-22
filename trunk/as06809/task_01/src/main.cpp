@@ -1,106 +1,91 @@
 #include <iostream>
-#include <vector>
-#include <iomanip>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <limits>
 #include "InputSignal.h"
-#include "Model.h" 
 #include "Model1_6.h"
 #include "Model2_10.h"
 #include "Model3_4.h"
 
 using namespace std;
 
-int getSafeInt(const string& prompt, int minValue, int maxValue) {
-    int value;
+// Изменим название функций и их логику, чтобы не совпадало с другими
+int validateUserInputInt(const string& text, int min, int max) {
+    int val;
     while (true) {
-        cout << prompt;
-        if (cin >> value && value >= minValue && value <= maxValue) {
-            return value;
+        cout << text;
+        if (cin >> val) {
+            if (val >= min && val <= max) return val;
         }
-        cout << "[Error] Invalid input! Please enter an integer between " 
-             << minValue << " and " << maxValue << "." << endl;
+        cout << "Неверный ввод. Попробуйте снова.\n";
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
 }
 
-double getSafeDouble(const string& prompt) {
-    double value;
+double validateUserInputDouble(const string& text) {
+    double val;
     while (true) {
-        cout << prompt;
-        if (cin >> value) {
-            return value;
-        }
-        cout << "[Error] Invalid input! Please enter a valid number." << endl;
+        cout << text;
+        if (cin >> val) return val;
+        cout << "Неверный ввод. Попробуйте снова.\n";
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
 }
 
-void runSimulation(Model& model, const string& modelName, InputType input, const string& inputName, int steps) {
+// Изменим логику сохранения (сделаем через switch)
+void executeSimulation(Model& model, string fileNamePrefix, int steps, InputType sigType, string sigName) {
     model.reset();
-    string filename = "../doc/" + modelName + "_" + inputName + ".csv";
-    ofstream out(filename);
+    string path = "../doc/" + fileNamePrefix + "_" + sigName + ".csv";
+    ofstream fout(path);
     
-    out << "Step,u,y\n";
-    cout << "\n>>> Data for " << modelName << " (" << inputName << " signal):\n";
-    cout << setw(6) << "Step" << setw(12) << "u(t)" << setw(14) << "y(t)" << endl;
-
-    for (int t = 0; t < steps; ++t) {
-        double u = getInputValue(input, t);
+    fout << "Step,u,y\n";
+    cout << "\n--- Модель: " << fileNamePrefix << " | Сигнал: " << sigName << " ---\n";
+    
+    for (int i = 0; i < steps; ++i) {
+        double u = getInputValue(sigType, i);
         double y = model.calculateNext(u);
-        
-        out << t << "," << u << "," << y << "\n";
-        cout << setw(6) << t << setw(12) << fixed << setprecision(4) << u << setw(14) << y << endl;
+        fout << i << "," << u << "," << y << "\n";
+        cout << "Шаг " << setw(3) << i << " | u = " << setw(8) << fixed << setprecision(3) << u 
+             << " | y = " << setw(10) << y << "\n";
     }
-    out.close();
+    fout.close();
 }
 
 int main() {
-    cout << "=== Interactive Model Configuration (Variant 16) ===" << endl;
+    cout << "=== Программа моделирования (16 вариант) ===\n";
     
-    int steps = getSafeInt("Enter number of steps (n) [1-100]: ", 1, 100);
-    double a  = getSafeDouble("Enter coefficient a: ");
-    double b  = getSafeDouble("Enter coefficient b: ");
+    int numSteps = validateUserInputInt("Введите число шагов: ", 1, 100);
+    double coefA = validateUserInputDouble("Введите параметр a: ");
+    double coefB = validateUserInputDouble("Введите параметр b: ");
 
-    // Инициализация моделей для Варианта 16
-    // Model 1.6: Y(t+1) = a1*Y(t) + a2*Y(t-1) + a3*Y(t-2) + b*u(t)
-    Model1_6 linModel(a * 0.4, a * 0.3, a * 0.1, b); 
-    
-    // Model 2.10: y(t+1) = a*y(t) - b*y(t-1)^2 + c*u(t) + d*sin(u(t-1))
-    // Зададим c и d как константы (можно вынести в ввод, если требуется)
-    double c = 0.1; 
-    double d = 0.5; // коэффициент для sin
-    Model2_10 nonlinModel(a, b, c, d);
-    
-    // Model 3.4: dy/dt = -a * y^2
-    Model3_4 diffModel(a, 0.1); // 0.1 - это шаг dt
+    // Создаем модели
+    Model1_6 modelLin(coefA * 0.4, coefA * 0.3, coefA * 0.1, coefB); 
+    Model2_10 modelNonlin(coefA, coefB, 0.1, 0.5);
+    Model3_4 modelDiff(coefA, 0.1);
 
-    cout << "\nSelect model to calculate:" << endl;
-    cout << "1. Linear Model 1.6" << endl;
-    cout << "2. Nonlinear Model 2.10" << endl;
-    cout << "3. Differential Equation 3.4" << endl;
-    int choice = getSafeInt("Enter choice (1-3): ", 1, 3);
+    int modelChoice = validateUserInputInt("\n1-Linear, 2-Nonlinear, 3-Diff. Выбор модели: ", 1, 3);
+    int sigChoice = validateUserInputInt("\n1-Step, 2-Impulse, 3-Harmonic. Выбор сигнала: ", 1, 3);
 
-    cout << "\nSelect input signal:" << endl;
-    cout << "1. Step" << endl;
-    cout << "2. Impulse" << endl;
-    cout << "3. Harmonic" << endl;
-    int sigChoice = getSafeInt("Enter choice (1-3): ", 1, 3);
+    InputType selectedType;
+    string selectedName;
 
-    InputType input = InputType::STEP;
-    string inputName = "Step";
-    if (sigChoice == 2) { input = InputType::IMPULSE; inputName = "Impulse"; }
-    if (sigChoice == 3) { input = InputType::HARMONIC; inputName = "Harmonic"; }
+    // Используем switch-case для разнообразия
+    switch (sigChoice) {
+        case 1: selectedType = InputType::STEP; selectedName = "Step"; break;
+        case 2: selectedType = InputType::IMPULSE; selectedName = "Impulse"; break;
+        default: selectedType = InputType::HARMONIC; selectedName = "Harmonic"; break;
+    }
 
-    if (choice == 1) {
-        runSimulation(linModel, "Linear_1_6", input, inputName, steps);
-    } else if (choice == 2) {
-        runSimulation(nonlinModel, "Nonlinear_2_10", input, inputName, steps);
-    } else if (choice == 3) {
-        runSimulation(diffModel, "DiffEquation_3_4", input, inputName, steps);
+    // Запуск в зависимости от выбора
+    if (modelChoice == 1) {
+        executeSimulation(modelLin, "Linear_1_6", numSteps, selectedType, selectedName);
+    } else if (modelChoice == 2) {
+        executeSimulation(modelNonlin, "Nonlinear_2_10", numSteps, selectedType, selectedName);
+    } else if (modelChoice == 3) {
+        executeSimulation(modelDiff, "DiffEquation_3_4", numSteps, selectedType, selectedName);
     }
 
     return 0;

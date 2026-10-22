@@ -1,15 +1,15 @@
 #include "Model3_4.h"
 
-Model3_4::Model3_4(double a, double dt) : a(a), dt(dt) {}
+Model3_4::Model3_4(double p_a, double p_dt) : a(p_a), dt(p_dt) {}
 
 double Model3_4::calculateNext(double u) {
-    // Метод Эйлера: y_next = y_curr + dt * (-a * y_curr^2)
-    // Обратите внимание: вход u(t) в данном уравнении не участвует!
-    double y_next = y_curr + dt * (-a * y_curr * y_curr);
-    y_curr = y_next;
-    return y_curr;
+    // u не используется в этой модели
+    double current_y = getY();
+    double next_y = current_y + dt * (-a * current_y * current_y);
+    setY(next_y);
+    return next_y;
 }
 
 void Model3_4::reset() {
-    y_curr = 0.0;
+    setY(0.0);
 }
