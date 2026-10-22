@@ -3,11 +3,12 @@
 Model3_4::Model3_4(double p_a, double p_dt) : a(p_a), dt(p_dt) {}
 
 double Model3_4::calculateNext(double u) {
-    double next_y = y_curr + dt * (-a * y_curr * y_curr);
-    y_curr = next_y;
-    return y_curr;
+    double current_y = getY();
+    double next_y = current_y + dt * (-a * current_y * current_y);
+    setY(next_y);
+    return next_y;
 }
 
 void Model3_4::reset() {
-    y_curr = 0.0;
+    setY(0.0);
 }

@@ -10,14 +10,13 @@
 
 using namespace std;
 
-// Изменим название функций и их логику, чтобы не совпадало с другими
 int validateUserInputInt(const string& text, int min, int max) {
     int val;
     while (true) {
         cout << text;
-        if (cin >> val) {
-            if (val >= min && val <= max) return val;
-        }
+        // Объединяем условия в один if, чтобы Satisfy SonarCloud
+        if (cin >> val && val >= min && val <= max) return val;
+        
         cout << "Неверный ввод. Попробуйте снова.\n";
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -35,8 +34,8 @@ double validateUserInputDouble(const string& text) {
     }
 }
 
-// Изменим логику сохранения (сделаем через switch)
-void executeSimulation(Model& model, string fileNamePrefix, int steps, InputType sigType, string sigName) {
+// Добавили const & для строк, чтобы SonarCloud не ругался
+void executeSimulation(Model& model, const string& fileNamePrefix, int steps, InputType sigType, const string& sigName) {
     model.reset();
     string path = "../doc/" + fileNamePrefix + "_" + sigName + ".csv";
     ofstream fout(path);
@@ -61,7 +60,6 @@ int main() {
     double coefA = validateUserInputDouble("Введите параметр a: ");
     double coefB = validateUserInputDouble("Введите параметр b: ");
 
-    // Создаем модели
     Model1_6 modelLin(coefA * 0.4, coefA * 0.3, coefA * 0.1, coefB); 
     Model2_10 modelNonlin(coefA, coefB, 0.1, 0.5);
     Model3_4 modelDiff(coefA, 0.1);
@@ -72,14 +70,12 @@ int main() {
     InputType selectedType;
     string selectedName;
 
-    // Используем switch-case для разнообразия
     switch (sigChoice) {
         case 1: selectedType = InputType::STEP; selectedName = "Step"; break;
         case 2: selectedType = InputType::IMPULSE; selectedName = "Impulse"; break;
         default: selectedType = InputType::HARMONIC; selectedName = "Harmonic"; break;
     }
 
-    // Запуск в зависимости от выбора
     if (modelChoice == 1) {
         executeSimulation(modelLin, "Linear_1_6", numSteps, selectedType, selectedName);
     } else if (modelChoice == 2) {

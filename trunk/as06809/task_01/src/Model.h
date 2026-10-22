@@ -1,8 +1,12 @@
 #pragma once
 
 class Model {
+private:
+    double y_curr = 0.0; // Теперь private
 protected:
-    double y_curr = 0.0; // SonarCloud может ругаться, но это правильный C++ подход для базовых классов
+    // Специальные методы доступа для наследников
+    double getY() const { return y_curr; }
+    void setY(double val) { y_curr = val; }
 public:
     virtual ~Model() = default;
     virtual double calculateNext(double u) = 0;
